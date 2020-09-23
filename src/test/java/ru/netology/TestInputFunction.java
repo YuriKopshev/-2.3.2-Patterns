@@ -1,36 +1,70 @@
 package ru.netology;
 
-import io.restassured.builder.RequestSpecBuilder;
-import io.restassured.filter.log.LogDetail;
-import io.restassured.http.ContentType;
-import io.restassured.specification.RequestSpecification;
+
+import com.codeborne.selenide.Selectors;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static com.codeborne.selenide.Condition.text;
+import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Selectors.byText;
+import static com.codeborne.selenide.Selectors.withText;
+import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.open;
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.is;
-import static ru.netology.DataGenerator.ClientGenerator.generateUser;
+import static ru.netology.DataGenerator.ClientGenerator.*;
+
 
 public class TestInputFunction {
-    private RequestSpecification requestSpec = new RequestSpecBuilder()
-            .setBaseUri("http://localhost")
-            .setPort(9999)
-            .setAccept(ContentType.JSON)
-            .setContentType(ContentType.JSON)
-            .log(LogDetail.ALL)
-            .build();
-
-    RegistrationDto user = generateUser();
-
+    @BeforeEach
+    void setup() {
+        open("http://localhost:9999");
+    }
 
     @Test
-    void shouldTestCreateUser() {
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(user) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
+    void checkingTheRegisteredUser() {
+        RegistrationDto validRegisteredUser = generateValidRegisteredUser();
+        $("[data-test-id=login] input").setValue(validRegisteredUser.getLogin());
+        $("[data-test-id=password] input").setValue(validRegisteredUser.getPassword());
+        $("button[data-test-id=action-login]").click();
+        $(".App_appContainer__3jRx1 h2.heading").shouldBe(visible).shouldHave(text("Личный кабинет"));
     }
+
+    @Test
+    void checkingTheBlockedUser() {
+        RegistrationDto validRegisteredUser = generateBlockedRegisteredUser();
+        $("[data-test-id=login] input").setValue(validRegisteredUser.getLogin());
+        $("[data-test-id=password] input").setValue(validRegisteredUser.getPassword());
+        $("button[data-test-id=action-login]").click();
+        $(withText("Пользователь заблокирован")).waitUntil(visible, 5000);
+    }
+
+    @Test
+    void checkingTheWrongPasswordUser() {
+        RegistrationDto validRegisteredUser = generateWrongPasswordRegisteredUser();
+        $("[data-test-id=login] input").setValue(validRegisteredUser.getLogin());
+        $("[data-test-id=password] input").setValue(validRegisteredUser.getPassword());
+        $("button[data-test-id=action-login]").click();
+        $(withText("Неверно указан логин или пароль")).waitUntil(visible, 5000);
+    }
+
+    @Test
+    void checkingTheWrongLoginUser() {
+        RegistrationDto validRegisteredUser = generateWrongLoginRegisteredUser();
+        $("[data-test-id=login] input").setValue(validRegisteredUser.getLogin());
+        $("[data-test-id=password] input").setValue(validRegisteredUser.getPassword());
+        $("button[data-test-id=action-login]").click();
+        $(withText("Неверно указан логин или пароль")).waitUntil(visible, 5000);
+    }
+
+    @Test
+    void checkingNotRegisteredUser() {
+        RegistrationDto validRegisteredUser = generateNotRegisteredUser();
+        $("[data-test-id=login] input").setValue(validRegisteredUser.getLogin());
+        $("[data-test-id=password] input").setValue(validRegisteredUser.getPassword());
+        $("button[data-test-id=action-login]").click();
+        $(withText("Неверно указан логин или пароль")).waitUntil(visible, 5000);
+    }
+
 
 }
